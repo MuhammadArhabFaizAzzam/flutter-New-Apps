@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Izin akses jaringan internet untuk NewsAPI & gambar -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:label="news_app"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        <!-- Activity configuration -->
+    </application>
+
+    <!-- Query izin untuk memproses intent teks & membuka link eksternal -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>
