@@ -35,9 +35,12 @@ dependencies:
   http: ^1.4.0                   # HTTP client untuk memanggil NewsAPI REST API
   url_launcher: ^6.3.1           # Membuka link berita lengkap di browser eksternal
   share_plus: ^11.0.0            # Berbagi judul dan tautan berita ke media sosial
-  cached_network_image: ^3.4.1   # Cache gambar berita dari internet ke memori lokal
+  cached_network_image: ^4.0.0   # Cache gambar berita dari internet ke memori lokal
   timeago: ^3.7.1                # Memformat timestamp menjadi waktu relatif (contoh: 2 jam lalu)
   flutter_dotenv: ^5.2.1      
+  google_fonts: ^8.2.1
+  shimmer: ^4.0.0
+  get_storage: ^2.1.1
 
 dev_dependencies:
   flutter_test:

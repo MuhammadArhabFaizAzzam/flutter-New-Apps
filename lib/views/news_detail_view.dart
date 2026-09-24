@@ -7,53 +7,104 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:news_app/models/news_article.dart';
 import 'package:news_app/utils/app_colors.dart';
+import 'package:news_app/routes/app_pages.dart';
 
 class NewsDetailView extends StatelessWidget {
   const NewsDetailView({super.key});
 
-  NewsArticle get article => Get.arguments as NewsArticle;
+  NewsArticle? get article => Get.arguments is NewsArticle ? Get.arguments as NewsArticle : null;
 
   @override
   Widget build(BuildContext context) {
+    final currentArticle = article;
+    if (currentArticle == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Notice'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.newspaper_rounded, size: 64, color: AppColors.primary),
+                const SizedBox(height: 16),
+                const Text(
+                  'No Article Selected',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Article session was reset (e.g. after hot restart). Please return to home.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Get.offAllNamed(Routes.HOME),
+                  child: const Text('Back to Home', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 320,
             pinned: true,
+            backgroundColor: isDark ? AppColors.darkSurface : AppColors.surface,
+            foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             flexibleSpace: FlexibleSpaceBar(
-              background: article.urlToImage != null
-                  ? CachedNetworkImage(
-                      imageUrl: article.urlToImage!,
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: currentArticle.urlToImage ?? NewsArticle.getFallbackImage(currentArticle.title),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: isDark ? Colors.grey[800] : Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                    ),
+                    errorWidget: (context, url, error) => CachedNetworkImage(
+                      imageUrl: NewsArticle.getFallbackImage(currentArticle.title),
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.divider,
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.divider,
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 50,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: AppColors.divider,
-                      child: Icon(
-                        Icons.newspaper,
-                        size: 50,
-                        color: AppColors.textHint,
+                    ),
+                  ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black54, Colors.transparent, Colors.black87],
+                        stops: [0.0, 0.5, 1.0],
                       ),
                     ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               IconButton(
-                icon: Icon(Icons.share),
+                icon: const Icon(Icons.share_rounded),
                 onPressed: () => _shareArticle(),
               ),
               PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded),
                 onSelected: (value) {
                   switch (value) {
                     case 'copy_link':
@@ -65,22 +116,22 @@ class NewsDetailView extends StatelessWidget {
                   }
                 },
                 itemBuilder: (context) => [
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'copy_link',
                     child: Row(
                       children: [
-                        Icon(Icons.copy),
-                        SizedBox(width: 8),
+                        Icon(Icons.copy_rounded, size: 18),
+                        SizedBox(width: 12),
                         Text('Copy Link'),
                       ],
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'open_browser',
                     child: Row(
                       children: [
-                        Icon(Icons.open_in_browser),
-                        SizedBox(width: 8),
+                        Icon(Icons.open_in_browser_rounded, size: 18),
+                        SizedBox(width: 12),
                         Text('Open in Browser'),
                       ],
                     ),
@@ -91,117 +142,99 @@ class NewsDetailView extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Source and Date
                   Row(
                     children: [
-                      if (article.source?.name != null) ...[
+                      if (currentArticle.source?.name != null)
                         Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            article.source!.name!,
-                            style: TextStyle(
+                            currentArticle.source!.name!,
+                            style: const TextStyle(
                               color: AppColors.primary,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        SizedBox(width: 12),
-                      ],
-                      if (article.publishedAt != null) ...[
+                      const SizedBox(width: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textSecondary),
+                          const SizedBox(width: 4),
+                          Text(
+                            ' min read',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      if (currentArticle.publishedAt != null)
                         Text(
-                          timeago.format(DateTime.parse(article.publishedAt!)),
+                          timeago.format(DateTime.parse(currentArticle.publishedAt!)),
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             fontSize: 12,
                           ),
                         ),
-                      ],
                     ],
                   ),
-                  SizedBox(height: 16),
-
-                  // Title
-                  if (article.title != null) ...[
+                  const SizedBox(height: 16),
+                  if (currentArticle.title != null)
                     Text(
-                      article.title!,
+                      currentArticle.title!,
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                         height: 1.3,
                       ),
                     ),
-                    SizedBox(height: 16),
-                  ],
-
-                  // Description
-                  if (article.description != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  if (currentArticle.content != null || currentArticle.description != null)
                     Text(
-                      article.description!,
+                      currentArticle.content ?? currentArticle.description!,
                       style: TextStyle(
                         fontSize: 16,
-                        color: AppColors.textSecondary,
-                        height: 1.5,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                  ],
-
-                  // Content
-                  if (article.content != null) ...[
-                    Text(
-                      'Content',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      article.content!,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
                         height: 1.6,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
-                    SizedBox(height: 24),
-                  ],
-
-                  // Read More Button
-                  if (article.url != null) ...[
+                  const SizedBox(height: 40),
+                  if (currentArticle.url != null)
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _openInBrowser,
+                      child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: Text(
-                          'Read Full Article',
-                          style: TextStyle(fontSize: 16),
+                        onPressed: () => _openInBrowser(),
+                        icon: const Icon(Icons.open_in_new_rounded),
+                        label: const Text(
+                          'Read Full Article on Web',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
-                  ],
-
-                  SizedBox(height: 32),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -212,37 +245,39 @@ class NewsDetailView extends StatelessWidget {
   }
 
   void _shareArticle() {
-    if (article.url != null) {
-      // ignore: deprecated_member_use
-      Share.share(
-        '${article.title ?? 'Check out this news'}\n\n${article.url!}',
-        subject: article.title,
-      );
+    final currentArticle = article;
+    if (currentArticle?.url != null) {
+      Share.share('\n\nRead more: ');
     }
   }
 
   void _copyLink() {
-    if (article.url != null) {
-      Clipboard.setData(ClipboardData(text: article.url!));
+    final currentArticle = article;
+    if (currentArticle?.url != null) {
+      Clipboard.setData(ClipboardData(text: currentArticle!.url!));
       Get.snackbar(
         'Success',
         'Link copied to clipboard',
         snackPosition: SnackPosition.BOTTOM,
-        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
       );
     }
   }
 
   void _openInBrowser() async {
-    if (article.url != null) {
-      final Uri url = Uri.parse(article.url!);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+    final currentArticle = article;
+    if (currentArticle?.url != null) {
+      final uri = Uri.parse(currentArticle!.url!);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         Get.snackbar(
           'Error',
-          'Could not open the link',
+          'Could not launch URL',
           snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.error,
+          colorText: Colors.white,
         );
       }
     }
